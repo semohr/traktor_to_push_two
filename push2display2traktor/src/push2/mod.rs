@@ -52,21 +52,29 @@ impl Push2Display {
         Ok(Push2Display { handle })
     }
 
-    pub fn send_buffer(&self, buffer: &[u8]) -> Result<(), Push2DisplayError> {
+    fn send_buffer(&self, buffer: &[u8]) -> Result<(), Push2DisplayError> {
         let timeout = std::time::Duration::from_millis(50);
-        let chunk_size = 2 * 1024; // 2KB
-                                   // Write header to indicate frame buffer is next
+        // Write header to indicate frame buffer is next
         self.handle
             .write_bulk(PUSH2_BULK_EP_OUT, &HEADER, timeout)?;
 
+        self.handle.write_bulk(PUSH2_BULK_EP_OUT, buffer, timeout)?;
+
         // Now push expects a frame (we will send 2kb at a time todo)
         // Send buffer in 2KB chunks
-        self.handle.write_bulk(PUSH2_BULK_EP_OUT, buffer, timeout)?;
+        // I found that this brings no performance increase!
+        //let chunk_size = 2 * 1024; // 2KB
         //for chunk in buffer.chunks(chunk_size) {
         //}
         //self.handle.write_bulk(PUSH2_BULK_EP_OUT, buffer, timeout)?;
 
         Ok(())
+    }
+
+    pub fn send_rgba8(&self, rgba_data: &Vec<u8>) -> Result<(), Push2DisplayError> {
+        let bgr565 = rgba8_to_bgr565(rgba_data);
+        let encoded = encode_buffer(&bgr565);
+        self.send_buffer(&encoded)
     }
 }
 
@@ -102,7 +110,7 @@ fn open_device<T: UsbContext>(
     None
 }
 
-pub fn encode_buffer(buffer: &[u16]) -> Vec<u8> {
+fn encode_buffer(buffer: &[u16]) -> Vec<u8> {
     //Apply padding
     let mut p = padding(buffer);
     //Xor
@@ -110,7 +118,7 @@ pub fn encode_buffer(buffer: &[u16]) -> Vec<u8> {
     return p;
 }
 
-pub fn rgba8_to_bgr565(rgba_data: &Vec<u8>) -> Vec<u16> {
+fn rgba8_to_bgr565(rgba_data: &Vec<u8>) -> Vec<u16> {
     let mut bgr565_data = vec![0u16; (DISPLAY_WIDTH * DISPLAY_HEIGHT) as usize];
     for (i, chunk) in rgba_data.chunks_exact(4).enumerate() {
         let r = chunk[0] >> 3;

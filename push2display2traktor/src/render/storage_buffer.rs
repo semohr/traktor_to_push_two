@@ -64,7 +64,8 @@ impl<Data: StorageData> StorageBuffer<Data> {
     /// - `queue`: The `wgpu::Queue` to use for writing the new data to the buffer.
     ///
     /// This function updates the internal uniform data and writes it to the GPU buffer.
-    pub fn update(&mut self, queue: &Queue) {
+    pub fn prepare(&mut self, queue: &Queue) {
+        // TODO i dont think we need to do this every update
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.data]));
     }
 
@@ -74,48 +75,5 @@ impl<Data: StorageData> StorageBuffer<Data> {
     /// A reference to the `wgpu::BindGroup` used to bind this uniform buffer to the pipeline.
     pub fn bind_group(&self) -> &BindGroup {
         &self.bind_group
-    }
-}
-
-/* -------------------------------------------------------------------------- */
-/*                             My storage data                                */
-/* -------------------------------------------------------------------------- */
-
-#[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct TraktorStateStorageData {
-    n_knobs: u32,     // 4 bytes
-    knobs: [f32; 16], // 16*4 = 64
-}
-// Implement the UniformData trait for KnobsStateUniformData
-impl StorageData for TraktorStateStorageData {
-    /// Returns a default instance of the implementing type.
-    fn default() -> Self {
-        Self {
-            n_knobs: 4,
-            knobs: [1.0; 16],
-        }
-    }
-
-    fn create_bind_group_layout(&self, device: &Device) -> BindGroupLayout {
-        return device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-            label: Some("Knobs bind group layout"),
-        });
-    }
-}
-
-impl TraktorStateStorageData {
-    pub fn new(n_knobs: u32, knobs: [f32; 16]) -> Self {
-        Self { n_knobs, knobs }
     }
 }

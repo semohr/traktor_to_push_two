@@ -7,8 +7,6 @@ use tokio::sync::Mutex;
 
 mod services;
 
-use crate::render::storage_buffer::TraktorStateStorageData;
-
 #[derive(Serialize, Clone)]
 pub struct TraktorState {
     fx_units: Vec<FXUnit>,
@@ -26,8 +24,8 @@ struct Knob {
     // Identifier in traktor [1,3]
     // 0 for dry wet
     id: u8,
-    value: f64,
-    fx_name: String,
+    pub value: f64,
+    pub fx_name: String,
 }
 
 impl Default for TraktorState {
@@ -37,25 +35,16 @@ impl Default for TraktorState {
     }
 }
 impl TraktorState {
-    pub fn to_uniform(&self) -> TraktorStateStorageData {
-        // for now hardcoded 8 knobs
-
-        let n_knobs = 8;
-        let knobs: [f32; 16] = self.all_knob_values();
-
-        return TraktorStateStorageData::new(n_knobs, knobs);
-    }
-
     fn iter_all_knobs(&self) -> impl Iterator<Item = &Knob> {
         self.fx_units.iter().flat_map(|unit| unit.knobs.iter())
     }
 
-    fn all_knob_values(&self) -> [f32; 16] {
-        let mut values: [f32; 16] = [0.0; 16]; // Initialize an array of 16 zeros
-        for (i, knob) in self.iter_all_knobs().enumerate() {
-            values[i] = knob.value as f32;
-        }
-        values
+    pub fn iter_knob_fx_names(&self) -> impl Iterator<Item = &String> {
+        self.iter_all_knobs().map(|k| &k.fx_name)
+    }
+
+    pub fn iter_knob_values(&self) -> impl Iterator<Item = &f64> {
+        self.iter_all_knobs().map(|k| &k.value)
     }
 }
 
@@ -80,7 +69,8 @@ pub struct AppState {
     pub traktor: Arc<Mutex<TraktorState>>,
 }
 
-/// Creates a simple server that parses the http request from traktor
+/// Creates a simple server that parses the http request from traktor to our
+/// state
 pub async fn create_server(state: Arc<Mutex<TraktorState>>) -> std::io::Result<()> {
     let state = web::Data::new(AppState { traktor: state });
 

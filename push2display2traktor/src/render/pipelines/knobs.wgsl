@@ -7,8 +7,6 @@ struct Knobs {
 };
 
 
-
-
 @vertex
 fn vs_main(@builtin(vertex_index) in_vertex_index: u32, @builtin(instance_index) in_instance_index: u32) -> @builtin(position) vec4<f32> {
     // Calculate the index of the knob based on vertex index

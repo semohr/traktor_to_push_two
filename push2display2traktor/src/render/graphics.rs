@@ -1,25 +1,26 @@
 use std::sync::Arc;
 
 use tokio::sync::{oneshot, Mutex};
-use wgpu::{
-    Adapter, Buffer, Device, Extent3d, Instance, Queue, RenderPipeline, Texture, TextureView,
-};
+use wgpu::{Adapter, Buffer, Device, Extent3d, Instance, Queue, Texture, TextureView};
 
 use crate::traktor::TraktorState;
 
-use super::storage_buffer::{StorageBuffer, StorageData, TraktorStateStorageData};
+use super::pipelines::{knobs::KnobsIndicatorPipe, text::TextPipe, Pipeline};
 
 pub struct Graphics {
     instance: Instance,
     adapter: Adapter,
-    device: Device,
-    queue: Queue,
+    pub device: Device,
+    pub queue: Queue,
     render_target: Texture,
     texture_view: TextureView,
     output_staging_buffer: Buffer,
-    pipeline: RenderPipeline,
-    pub uniform_buffer: StorageBuffer<TraktorStateStorageData>,
     pub size: Extent3d,
+
+    // Current knob state
+    knobs_pipe: KnobsIndicatorPipe,
+    // Text render system for the effect names
+    text_pipe: TextPipe,
 }
 
 impl Graphics {
@@ -49,11 +50,7 @@ impl Graphics {
             depth_or_array_layers: 1,
         };
 
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-        });
-
+        //-----------------------------------------------
         // We use the output texture to map the output to a buffer see also
         // https://sotrh.github.io/learn-wgpu/showcase/windowless/#a-triangle-without-a-window
         let render_target = device.create_texture(&wgpu::TextureDescriptor {
@@ -76,40 +73,13 @@ impl Graphics {
             mapped_at_creation: false,
         });
 
-        // Create uniform buffer(s) here only for the knobs, see uniform_buffer.rs
-        let uniform_buffer = StorageBuffer::new(&device, TraktorStateStorageData::default());
-
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&uniform_buffer.bind_group_layout],
-                push_constant_ranges: &[],
-            });
-
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: None,
-            layout: Some(&render_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                compilation_options: Default::default(),
-                targets: &[Some(wgpu::TextureFormat::Rgba8UnormSrgb.into())],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-        });
+        let texture_view = render_target.create_view(&Default::default());
 
         //-----------------------------------------------
-
-        let texture_view = render_target.create_view(&Default::default());
+        // Pipelines
+        let knobs_pipe = KnobsIndicatorPipe::new(&device, &queue, &size);
+        let text_pipe = TextPipe::new(&device, &queue, &size);
+        //-----------------------------------------------
 
         Self {
             instance,
@@ -119,15 +89,19 @@ impl Graphics {
             texture_view,
             render_target,
             output_staging_buffer,
-            pipeline,
             size,
-            uniform_buffer,
+            knobs_pipe,
+            text_pipe,
         }
     }
 
     // Writes the current frame to the buffer
-    pub async fn render(&self) -> Vec<u8> {
+    pub async fn render(&mut self) -> Vec<u8> {
         {
+            // Prepare all pipes
+            self.knobs_pipe.prepare(&self.device, &self.queue);
+            self.text_pipe.prepare(&self.device, &self.queue);
+
             let mut command_encoder = self
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
@@ -139,7 +113,7 @@ impl Graphics {
                             view: &self.texture_view,
                             resolve_target: None,
                             ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                                 store: wgpu::StoreOp::Store,
                             },
                         })],
@@ -147,12 +121,14 @@ impl Graphics {
                         occlusion_query_set: None,
                         timestamp_writes: None,
                     });
-                render_pass.set_pipeline(&self.pipeline);
-                render_pass.set_bind_group(0, &self.uniform_buffer.bind_group, &[]);
-                render_pass.draw(0..6, 0..8);
+
+                // Draw text
+                self.knobs_pipe.render(&mut render_pass);
+                self.text_pipe.render(&mut render_pass);
             }
 
             // The texture now contains our rendered image
+            // which we can than pass to a buffer and than to the display
             let u32_size = std::mem::size_of::<u32>() as u32;
             command_encoder.copy_texture_to_buffer(
                 wgpu::ImageCopyTexture {
@@ -171,23 +147,23 @@ impl Graphics {
                 },
                 self.size,
             );
+
             self.queue.submit(Some(command_encoder.finish()));
+
+            // Cleanup pipelines
+            self.text_pipe.render_cleanup();
         }
 
-        /* -------------------------------------------------------------------------- */
-        /*                               copy to buffer                               */
-        /* -------------------------------------------------------------------------- */
-
+        // Wait for bufferslice
         let buffer_slice = self.output_staging_buffer.slice(..);
-
         let (tx, rx) = oneshot::channel();
-
         buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
             tx.send(result).unwrap();
         });
         self.device.poll(wgpu::Maintain::Wait);
         rx.await.unwrap().unwrap();
 
+        // Copy texture to a buffer and return
         let data = buffer_slice.get_mapped_range();
         let dat = data.to_vec();
         drop(data);
@@ -197,7 +173,9 @@ impl Graphics {
 
     pub async fn update(&mut self, state: &Arc<Mutex<TraktorState>>) {
         let s = state.lock().await;
-        self.uniform_buffer.data = s.to_uniform();
-        self.uniform_buffer.update(&self.queue);
+
+        // Update pipelines
+        self.knobs_pipe.update(&s);
+        self.text_pipe.update(&s);
     }
 }

@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 actix-web = "4.8.0"
 bytemuck = { version = "1.16.1", features = ["derive"] }
+glyphon = { git = "https://github.com/grovesNL/glyphon", version = "0.5.0" }
 rusb = "0.9.4"
 serde = { version = "1.0.204", features = ["derive", "rc"] }
 thiserror = "1.0.61"

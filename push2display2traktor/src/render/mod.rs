@@ -1,8 +1,8 @@
 mod fps_controller;
 pub mod graphics;
+mod pipelines;
 pub mod storage_buffer;
-
-use crate::push2::{encode_buffer, rgba8_to_bgr565, Push2Display};
+use crate::push2::Push2Display;
 use crate::traktor::TraktorState;
 
 use fps_controller::FPSController;
@@ -24,12 +24,9 @@ pub async fn render_loop(
         // Update buffers via state
         graphics.update(&state).await;
 
-        // Render to array
+        // Render to push display
         let rgba_data = graphics.render().await;
-        // Convert RGBA8 to bgr565 and send to push
-        let bgr565_data = rgba8_to_bgr565(&rgba_data);
-        let p = encode_buffer(&bgr565_data);
-        display.send_buffer(&p).unwrap();
+        display.send_rgba8(&rgba_data).unwrap();
 
         fps_controller.end_frame().await;
     }
