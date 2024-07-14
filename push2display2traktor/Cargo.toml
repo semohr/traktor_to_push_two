@@ -1,0 +1,18 @@
+[package]
+name = "push2display2traktor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.8.0"
+bytemuck = { version = "1.16.1", features = ["derive"] }
+rusb = "0.9.4"
+serde = { version = "1.0.204", features = ["derive", "rc"] }
+thiserror = "1.0.61"
+tokio = { version = "1.38.0", features = ["full"] }
+wgpu = "0.20.1"
+
+
+[features]
+default = ["verbose"]
+verbose = []
