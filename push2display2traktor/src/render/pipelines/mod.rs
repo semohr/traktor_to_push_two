@@ -1,6 +1,6 @@
 pub mod knobs;
 pub mod text;
-
+pub mod cube;
 /// A trait that defines the required methods for a rendering pipeline.
 /// This more or less follows the middleware pattern
 /// see https://github.com/gfx-rs/wgpu/wiki/Encapsulating-Graphics-Work

@@ -12,7 +12,8 @@ pub struct TextPipe {
     pub viewport: Viewport,
     pub atlas: TextAtlas,
     pub renderer: TextRenderer,
-    texts: Vec<TextStorageData>,
+    knob_texts: Vec<TextStorageData>,
+    other_texts: Vec<TextStorageData>,
     font_system: FontSystem,
 }
 
@@ -36,22 +37,79 @@ impl Pipeline<TraktorState> for TextPipe {
             },
         );
 
-        let font_system = FontSystem::new();
+        let mut font_system = FontSystem::new();
+        let other_texts = vec![
+            TextStorageData::new(
+                "LOAD A".to_string(),
+                &mut font_system,
+                5.0,
+                160.0 - 15.0 - 15.0,
+            ),
+            TextStorageData::new(
+                "SYNC A".to_string(),
+                &mut font_system,
+                5.0 + 120.0 * 1.0,
+                160.0 - 15.0 - 15.0,
+            ),
+            TextStorageData::new(
+                "FX 1".to_string(),
+                &mut font_system,
+                5.0 + 120.0 * 2.0,
+                160.0 - 15.0 - 15.0,
+            ),
+            TextStorageData::new(
+                "FX 2".to_string(),
+                &mut font_system,
+                5.0 + 120.0 * 3.0,
+                160.0 - 15.0 - 15.0,
+            ),
+            TextStorageData::new(
+                "FX 1".to_string(),
+                &mut font_system,
+                5.0 + 120.0 * 4.0,
+                160.0 - 15.0 - 15.0,
+            ),
+            TextStorageData::new(
+                "FX 2".to_string(),
+                &mut font_system,
+                5.0 + 120.0 * 5.0,
+                160.0 - 15.0 - 15.0,
+            ),
+            TextStorageData::new(
+                "SYNC B".to_string(),
+                &mut font_system,
+                5.0 + 120.0 * 6.0,
+                160.0 - 15.0 - 15.0,
+            ),
+            TextStorageData::new(
+                "LOAD B".to_string(),
+                &mut font_system,
+                5.0 + 120.0 * 7.0,
+                160.0 - 15.0 - 18.0,
+            ),
+        ];
 
         Self {
             swash_cache,
             viewport,
             atlas,
             renderer,
-            texts: vec![],
+            knob_texts: vec![],
+            other_texts,
             font_system,
         }
     }
 
     fn prepare(&mut self, device: &Device, queue: &Queue) {
-        if self.texts.len() < 1 {
+        if self.knob_texts.len() < 1 {
             return;
         }
+
+        // Combine vectors
+        let knobs = self.knob_texts.iter().map(|x| x.to_text_area());
+        let other = self.other_texts.iter().map(|x| x.to_text_area());
+        let text = knobs.chain(other);
+
         self.renderer
             .prepare(
                 &device,
@@ -59,14 +117,14 @@ impl Pipeline<TraktorState> for TextPipe {
                 &mut self.font_system,
                 &mut self.atlas,
                 &self.viewport,
-                self.texts.iter().map(|x| x.to_text_area()),
+                text.collect::<Vec<TextArea>>(),
                 &mut self.swash_cache,
             )
             .unwrap();
     }
 
     fn render<'pass>(&'pass self, render_pass: &mut RenderPass<'pass>) {
-        if self.texts.len() < 1 {
+        if self.knob_texts.len() < 1 {
             return;
         }
         self.renderer
@@ -75,7 +133,7 @@ impl Pipeline<TraktorState> for TextPipe {
     }
 
     fn render_cleanup(&mut self) {
-        if self.texts.len() < 1 {
+        if self.knob_texts.len() < 1 {
             return;
         }
         self.atlas.trim();
@@ -83,17 +141,18 @@ impl Pipeline<TraktorState> for TextPipe {
 
     // Updates the texts from the traktor state
     fn update(&mut self, state: &TraktorState) {
+        // Update the 16 knob texts
         for (i, fx_name) in state.iter_knob_fx_names().enumerate() {
-            if self.texts.len() < i + 1 {
-                self.texts.push(TextStorageData::new(
+            if self.knob_texts.len() < i + 1 {
+                self.knob_texts.push(TextStorageData::new_knob(
                     fx_name.clone(),
                     &mut self.font_system,
                     i as u32,
                 ));
             } else {
-                if self.texts[i].text != *fx_name {
-                    self.texts[i].text = fx_name.to_string();
-                    self.texts[i].update_buffer(&mut self.font_system);
+                if self.knob_texts[i].text != *fx_name {
+                    self.knob_texts[i].text = fx_name.to_string();
+                    self.knob_texts[i].update_buffer(&mut self.font_system);
                 }
             }
         }
@@ -109,20 +168,23 @@ struct TextStorageData {
 }
 
 impl TextStorageData {
-    fn new(text: String, mut font_system: &mut FontSystem, fx_id: u32) -> Self {
-        // Define text to draw
-        let mut buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(18.0, 20.0));
-
-        buffer.set_size(&mut font_system, Some(110 as f32), Some(150 as f32));
-
+    fn new_knob(text: String, font_system: &mut FontSystem, fx_id: u32) -> Self {
         // Size is hardcoded to divide the display into 8 blocks and add 5px padding
         // 960/8 - 5*2 = 110
-        // 160 - 5*2 = 150
+        // 160 - 10*2 = 140
+        return Self::new(text, font_system, 5.0 + 120.0 * fx_id as f32, 15.0);
+    }
+
+    fn new(text: String, mut font_system: &mut FontSystem, left: f32, top: f32) -> Self {
+        // Define text to draw
+        let mut buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(18.0, 20.0));
+        buffer.set_size(&mut font_system, Some(110 as f32), Some(150 as f32));
+
         let mut s = Self {
             buffer,
             text,
-            left: 5.0 + 120.0 * fx_id as f32,
-            top: 5.0,
+            left,
+            top,
         };
         s.update_buffer(font_system);
         s

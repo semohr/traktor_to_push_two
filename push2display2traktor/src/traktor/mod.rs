@@ -15,8 +15,16 @@ pub struct TraktorState {
 pub struct FXUnit {
     // Identifier in traktor [1,4]
     id: u8,
+    r#type:FxUnitType,
     // Each fx unit has four knobs (drywet + 3*effect)
     knobs: Vec<Knob>,
+}
+
+#[derive(Serialize, Clone)]
+pub enum FxUnitType {
+    Group,
+    Single,
+    UNK
 }
 
 #[derive(Serialize, Clone)]
@@ -24,8 +32,9 @@ struct Knob {
     // Identifier in traktor [1,3]
     // 0 for dry wet
     id: u8,
-    pub value: f64,
-    pub fx_name: String,
+    value: f64,
+    value_description: String,
+    fx_name: String,
 }
 
 impl Default for TraktorState {
@@ -56,10 +65,11 @@ impl FXUnit {
                 id: i as u8,
                 value: 0.5,
                 fx_name: String::from("UNK"),
+                value_description: "UNK".to_string(),
             })
             .collect();
 
-        Self { id, knobs }
+        Self { id, knobs, r#type:FxUnitType::UNK }
     }
 }
 

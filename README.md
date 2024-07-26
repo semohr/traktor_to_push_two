@@ -11,4 +11,10 @@ This repository provides programs, helper scripts, and resources for integrating
 
 ## Usage
 
-TODO
+Insall the api by replacing the traktor files in `C:\Program Files\Native Instruments\Traktor Pro 3\Resources64\qml\CSI\D2` with the files from `.\traktor_api\D2\`.
+
+If you don't own a Traktor Kontrol D2:
+    - Go to Preferences > Controller Manager
+    - Below the Device dropdown, click Add… > Traktor > Kontrol D2
+
+Load the traktor mappings from `.\traktor_mappings\complete` and start the `push2display` app with `cargo run`.

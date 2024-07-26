@@ -5,7 +5,7 @@ use wgpu::{Adapter, Buffer, Device, Extent3d, Instance, Queue, Texture, TextureV
 
 use crate::traktor::TraktorState;
 
-use super::pipelines::{knobs::KnobsIndicatorPipe, text::TextPipe, Pipeline};
+use super::pipelines::{cube::CubePipeline, knobs::KnobsIndicatorPipe, text::TextPipe, Pipeline};
 
 pub struct Graphics {
     instance: Instance,
@@ -21,6 +21,8 @@ pub struct Graphics {
     knobs_pipe: KnobsIndicatorPipe,
     // Text render system for the effect names
     text_pipe: TextPipe,
+    // spinning cube
+    cube_pipe: CubePipeline,
 }
 
 impl Graphics {
@@ -79,6 +81,7 @@ impl Graphics {
         // Pipelines
         let knobs_pipe = KnobsIndicatorPipe::new(&device, &queue, &size);
         let text_pipe = TextPipe::new(&device, &queue, &size);
+        let cube_pipe= CubePipeline::new(&device,&queue,&size);
         //-----------------------------------------------
 
         Self {
@@ -92,6 +95,7 @@ impl Graphics {
             size,
             knobs_pipe,
             text_pipe,
+            cube_pipe
         }
     }
 
@@ -99,6 +103,7 @@ impl Graphics {
     pub async fn render(&mut self) -> Vec<u8> {
         {
             // Prepare all pipes
+            self.cube_pipe.prepare(&self.device, &self.queue);
             self.knobs_pipe.prepare(&self.device, &self.queue);
             self.text_pipe.prepare(&self.device, &self.queue);
 
@@ -123,6 +128,7 @@ impl Graphics {
                     });
 
                 // Draw text
+                self.cube_pipe.render(&mut render_pass);
                 self.knobs_pipe.render(&mut render_pass);
                 self.text_pipe.render(&mut render_pass);
             }
@@ -151,7 +157,9 @@ impl Graphics {
             self.queue.submit(Some(command_encoder.finish()));
 
             // Cleanup pipelines
+            self.cube_pipe.render_cleanup();
             self.text_pipe.render_cleanup();
+            self.knobs_pipe.render_cleanup();
         }
 
         // Wait for bufferslice

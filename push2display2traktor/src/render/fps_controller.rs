@@ -67,7 +67,7 @@ impl FPSController {
     fn print_current_fps(&self) {
         println!("Current FPS: {:.2}", self.fps());
         println!(
-            "Average Frame TIme: {:.2}ms",
+            "Average Frame Time: {:.2}ms",
             self.avg_frame_time() * 1000.0
         );
     }

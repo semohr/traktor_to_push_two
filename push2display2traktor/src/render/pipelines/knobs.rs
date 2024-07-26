@@ -10,7 +10,7 @@ pub struct KnobsIndicatorPipe {
 }
 
 impl Pipeline<TraktorState> for KnobsIndicatorPipe {
-    fn new(device: &wgpu::Device, queue: &wgpu::Queue, size: &wgpu::Extent3d) -> Self {
+    fn new(device: &wgpu::Device, _queue: &wgpu::Queue, _size: &wgpu::Extent3d) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("knobs.wgsl").into()),
