@@ -11,8 +11,10 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use traktor::create_server;
 
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> std::io::Result<()> {
+
     // Create state that hold traktor data arc mutex to share between tokio threads
     let state = Arc::new(Mutex::new(TraktorState::default()));
 
