@@ -21,7 +21,10 @@ pub struct Graphics {
     knobs_pipe: KnobsIndicatorPipe,
     // Text render system for the effect names
     text_pipe: TextPipe,
+
+
     // spinning cube
+    #[cfg(feature = "fancy")]
     cube_pipe: CubePipeline,
 }
 
@@ -81,6 +84,8 @@ impl Graphics {
         // Pipelines
         let knobs_pipe = KnobsIndicatorPipe::new(&device, &queue, &size);
         let text_pipe = TextPipe::new(&device, &queue, &size);
+
+        #[cfg(feature = "fancy")]
         let cube_pipe= CubePipeline::new(&device,&queue,&size);
         //-----------------------------------------------
 
@@ -95,6 +100,7 @@ impl Graphics {
             size,
             knobs_pipe,
             text_pipe,
+            #[cfg(feature = "fancy")]
             cube_pipe
         }
     }
@@ -103,6 +109,7 @@ impl Graphics {
     pub async fn render(&mut self) -> Vec<u8> {
         {
             // Prepare all pipes
+            #[cfg(feature = "fancy")]
             self.cube_pipe.prepare(&self.device, &self.queue);
             self.knobs_pipe.prepare(&self.device, &self.queue);
             self.text_pipe.prepare(&self.device, &self.queue);
@@ -127,7 +134,8 @@ impl Graphics {
                         timestamp_writes: None,
                     });
 
-                // Draw text
+                // Draw
+                #[cfg(feature = "fancy")]
                 self.cube_pipe.render(&mut render_pass);
                 self.knobs_pipe.render(&mut render_pass);
                 self.text_pipe.render(&mut render_pass);
@@ -157,7 +165,9 @@ impl Graphics {
             self.queue.submit(Some(command_encoder.finish()));
 
             // Cleanup pipelines
+            #[cfg(feature = "fancy")]
             self.cube_pipe.render_cleanup();
+
             self.text_pipe.render_cleanup();
             self.knobs_pipe.render_cleanup();
         }

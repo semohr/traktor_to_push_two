@@ -21,12 +21,12 @@ pub struct TextPipe {
 impl Pipeline<TraktorState> for TextPipe {
     fn new(device: &Device, queue: &Queue, size: &Extent3d) -> Self {
         let swash_cache = SwashCache::new();
-        let cache = Cache::new(&device);
-        let mut viewport = Viewport::new(&device, &cache);
+        let cache = Cache::new(device);
+        let mut viewport = Viewport::new(device, &cache);
         let mut atlas =
-            TextAtlas::new(&device, &queue, &cache, wgpu::TextureFormat::Rgba8UnormSrgb);
+            TextAtlas::new(device, &queue, &cache, wgpu::TextureFormat::Rgba8UnormSrgb);
         let renderer =
-            TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
+            TextRenderer::new(&mut atlas, device, wgpu::MultisampleState::default(), None);
 
         // This shouldn't change in our program, on normal windows applications
         // this should be called in the resize handler
