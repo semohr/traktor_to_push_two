@@ -10,11 +10,14 @@ Basically this allows to fully control Traktor Pro 3 with the Ableton Push 2 and
 - **Display Driver**: Utilizes the Push 2 display for showing current effects and other functions with real-time feedback.
 - **Resources**: A number of resources I found while researching which might be helpful
 
-### Example
+### Examples
+<p align="center">
+<img src="./images/example.gif" alt="example"/>
+</p>
 
-![example](./images/example.gif)
+![top](./images/top.jpg)
 
-![mapping](./images/mapping.png)
+![mapping_help](./images/mapping.png)
 
 ## Installation
 
@@ -59,6 +62,7 @@ Load the traktor mappings from `.\mappings\complete.tsi`.
 Sometimes the encoder type is not set correctly. If the encoders are not working correctly, you can change the encoder type in the controller manager, this takes some time tho as you have to do it for every mapping using the encoders.
 
 
+
 ### Push 2 Display Driver
 
 To install the push display driver, you need to have Rust installed. You can install Rust from [here](https://www.rust-lang.org/tools/install). To build the application for your current machine, just run
@@ -69,6 +73,7 @@ cargo build --release
 ```
 
 If you omit the release option the screen refresh rate will be significantly lowered! 
+
 
 
 ## Usage
