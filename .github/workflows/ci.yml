@@ -42,10 +42,10 @@ jobs:
                   args: "--locked --release"
                   strip: true
             - name: Rename binary (linux and macos)
-              run: mv target/${{ matrix.platform.target }}/release/push2display2traktor target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+              run: mv push2display2traktor/target/${{ matrix.platform.target }}/release/push2display2traktor push2display2traktor/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
               if: matrix.platform.os_name != 'Windows-x86_64'
             - name: Rename binary (windows)
-              run: mv target/${{ matrix.platform.target }}/release/push2display2traktor.exe target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+              run: mv push2display2traktor/target/${{ matrix.platform.target }}/release/push2display2traktor.exe push2display2traktor/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
               if: matrix.platform.os_name == 'Windows-x86_64'
             - name: Generate SHA-256
               run: shasum -a 256 target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} | cut -d ' ' -f 1 > target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
@@ -53,5 +53,5 @@ jobs:
               uses: softprops/action-gh-release@v1
               with:
                   files: |
-                      target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
-                      target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
+                      push2display2traktor/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+                      push2display2traktor/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
