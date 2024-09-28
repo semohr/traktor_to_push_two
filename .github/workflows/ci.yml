@@ -48,7 +48,7 @@ jobs:
               run: mv push2display2traktor/target/${{ matrix.platform.target }}/release/push2display2traktor.exe push2display2traktor/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
               if: matrix.platform.os_name == 'Windows-x86_64'
             - name: Generate SHA-256
-              run: shasum -a 256 target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} | cut -d ' ' -f 1 > target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
+              run: shasum -a 256 push2display2traktor/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} | cut -d ' ' -f 1 > push2display2traktor/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
             - name: Release binary and SHA-256 checksum to GitHub
               uses: softprops/action-gh-release@v1
               with:
